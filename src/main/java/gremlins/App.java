@@ -61,8 +61,12 @@ public class App extends PApplet {
         //this.slime = loadImage(this.getClass().getResource("slime.png").getPath().replace("%20", ""));
         this.fireball = loadImage(this.getClass().getResource("fireball.png").getPath().replace("%20", ""));
         
+        PImage[] brickDestructionImages = new PImage[4];
+        for (int i = 0; i < 4; i++) {
+            brickDestructionImages[i] = loadImage(this.getClass().getResource("brickwall_destroyed" + i + ".png").getPath().replace("%20", ""));
+        }
         // Initialize the map
-        this.gameMap = new GameMap(stonewall, brickwall, gremlin, exit);
+        this.gameMap = new GameMap(stonewall, brickwall, gremlin, exit, brickDestructionImages);
 
         // Load the configuration
         JSONObject config = loadJSONObject(new File(this.configPath));
@@ -122,7 +126,7 @@ public class App extends PApplet {
         background(13544591);
         this.gameMap.draw(this);
         this.wizard.draw(this);
-        this.wizard.update();
+        this.wizard.update(this.gameMap);
 
         // Draw cooldown timer bar
         this.wizard.drawCooldownBar(this);

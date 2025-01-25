@@ -99,13 +99,13 @@ public class Wizard {
         }
     }
 
-    public void update() {
+    public void update(GameMap map) {
         if (this.cooldownTimer > 0) {
             this.cooldownTimer--;
         }
         fireballs.removeIf(Fireball::isExpired);
         for (Fireball fireball : fireballs) {
-            fireball.update();
+            fireball.update(map);
         }
         if (moving) {
             if (this.x < this.targetX) this.x += speed;

@@ -16,11 +16,14 @@ public class GameMap {
     private PImage gremlinImage;
     private PImage exitImage;
 
-    public GameMap(PImage stoneImage, PImage brickImage, PImage gremlinImage, PImage exitImage) {
+    private PImage[] brickDestructionImages; // Store destruction images
+
+    public GameMap(PImage stoneImage, PImage brickImage, PImage gremlinImage, PImage exitImage, PImage[] brickDestructionImages) {
         this.stoneImage = stoneImage;
         this.brickImage = brickImage;
         this.gremlinImage = gremlinImage;
         this.exitImage = exitImage;
+        this.brickDestructionImages = brickDestructionImages;
     }
 
     public void loadMap(String filePath) {
@@ -72,10 +75,22 @@ public class GameMap {
         for (int row = 0; row < rows; row++) {
             for (int col = 0; col < cols; col++) {
                 Tile tile = grid[row][col];
-                if (tile != null && tile.getImage() != null) {
-                    app.image(tile.getImage(), col * App.SPRITESIZE, row * App.SPRITESIZE);
+                if (tile != null) {
+                    // Check if the tile is fully destroyed
+                    if (tile.isDestroyed()) {
+                        grid[row][col] = new Tile(Tile.EMPTY, null); // Replace with an empty tile
+                    } else {
+                        tile.draw(app, col * App.SPRITESIZE, row * App.SPRITESIZE);
+                    }
                 }
             }
+        }
+    }
+    
+    public void triggerBrickDestruction(int gridX, int gridY) {
+        Tile tile = this.grid[gridY][gridX];
+        if (tile != null && tile.getType() == Tile.BRICK) {
+            tile.startDestructionAnimation(this.brickDestructionImages); // Use stored images
         }
     }
 

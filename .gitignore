@@ -1,0 +1,15 @@
+# Gradle build directory
+build/
+.gradle/
+
+# IDE-specific files
+.idea/
+.vscode/
+
+# Logs and temp files
+*.log
+.DS_Store
+Thumbs.db
+
+# OS-specific files
+*.swp

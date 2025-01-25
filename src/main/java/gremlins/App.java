@@ -123,6 +123,9 @@ public class App extends PApplet {
         this.gameMap.draw(this);
         this.wizard.draw(this);
         this.wizard.update();
+
+        // Draw cooldown timer bar
+        this.wizard.drawCooldownBar(this);
     }
 
     public static void main(String[] args) {

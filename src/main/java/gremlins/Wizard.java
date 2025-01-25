@@ -65,7 +65,7 @@ public class Wizard {
                 this.direction = "up";
                 this.currentImage = this.upImage;
             }
-            
+
             // Log the requested move
             System.out.println("Attempting to move to tile (" + nextTileX + ", " + nextTileY + ")");
     
@@ -122,6 +122,27 @@ public class Wizard {
                 System.out.println("Reached target tile: (" + this.tileX + ", " + this.tileY + ")");
             }
         }
+    }
+
+    public void drawCooldownBar(PApplet app) {
+        int barWidth = 100;
+        int barHeight = 5;
+        int barX = App.WIDTH - 120;
+        int barY = App.HEIGHT - 40;
+    
+        // Draw black outline
+        app.stroke(0);
+        app.noFill();
+        app.rect(barX, barY, barWidth, barHeight);
+    
+        // Draw cooldown progress
+        int cooldownWidth = (int) (barWidth * (1 - (cooldownTimer / (float) cooldownFrames)));
+
+        app.fill(0, 0, 255); // Blue when recharging
+        if (cooldownTimer > 0) {
+            app.fill(0, 0, 255); // Blue when recharging
+        }
+        app.rect(barX, barY, cooldownWidth, barHeight);
     }
 
     public int getSpeed() {

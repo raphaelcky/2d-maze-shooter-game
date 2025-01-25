@@ -1,0 +1,134 @@
+package gremlins;
+
+import processing.core.PApplet;
+import processing.core.PImage;
+import java.util.ArrayList;
+
+public class Wizard {
+    private int x, y; // Current position in pixels
+    private int tileX, tileY; // Current position in grid
+    private int targetX, targetY; // Target position in pixels
+    private int speed = 2; // Speed of movement in pixels/frame
+    private boolean moving; // Whether the wizard is currently moving
+    private String direction; // Current direction
+
+    private int cooldownTimer = 0; // Timer for fireball cooldown
+    private int cooldownFrames; // Cooldown duration in frames
+
+    private PImage currentImage;
+    private PImage leftImage, rightImage, upImage, downImage;
+    private PImage fireballImage;
+
+    private ArrayList<Fireball> fireballs; // List of active fireballs
+
+    public Wizard(int x, int y, PImage leftImage, PImage rightImage, PImage upImage, PImage downImage, int cooldownFrames, PImage fireballImage) {
+        this.x = x;
+        this.y = y;
+        this.tileX = x / App.SPRITESIZE;
+        this.tileY = y / App.SPRITESIZE;
+        this.targetX = x;
+        this.targetY = y;
+        this.currentImage = rightImage;
+        this.leftImage = leftImage;
+        this.rightImage = rightImage;
+        this.upImage = upImage;
+        this.downImage = downImage;
+        this.cooldownFrames = cooldownFrames;
+        this.fireballs = new ArrayList<>();
+        this.direction = "right"; // Default direction
+        this.fireballImage = fireballImage;
+    }
+
+    public void draw(PApplet app) {
+        app.image(this.currentImage, this.x, this.y);
+        for (Fireball fireball : fireballs) {
+            fireball.draw(app);
+        }
+    }
+
+    public void move(int dx, int dy, GameMap map) {
+        if (!moving) {
+            int nextTileX = this.tileX + dx;
+            int nextTileY = this.tileY + dy;
+            
+            // Update direction and sprite
+            if (dx > 0) {
+                this.direction = "right";
+                this.currentImage = this.rightImage;
+            } else if (dx < 0) {
+                this.direction = "left";
+                this.currentImage = this.leftImage;
+            } else if (dy > 0) {
+                this.direction = "down";
+                this.currentImage = this.downImage;
+            } else if (dy < 0) {
+                this.direction = "up";
+                this.currentImage = this.upImage;
+            }
+            
+            // Log the requested move
+            System.out.println("Attempting to move to tile (" + nextTileX + ", " + nextTileY + ")");
+    
+            // Check collision with stone and brick walls
+            Tile nextTile = map.getTile(nextTileY, nextTileX);
+            if (nextTile == null || nextTile.getType() == Tile.STONE || nextTile.getType() == Tile.BRICK) {
+                System.out.println("Movement blocked by obstacle.");
+                return;
+            }
+    
+            // Set movement target
+            this.moving = true;
+            this.tileX = nextTileX;
+            this.tileY = nextTileY;
+            this.targetX = this.tileX * App.SPRITESIZE;
+            this.targetY = this.tileY * App.SPRITESIZE;
+    
+            // Log movement initiation
+            System.out.println("Moving to target pixel (" + this.targetX + ", " + this.targetY + ")");
+    
+
+        }
+    
+    }
+
+    public void shootFireball() {
+        if (this.cooldownTimer == 0) {
+            Fireball fireball = new Fireball(this.x, this.y, this.direction, this.fireballImage);
+            this.fireballs.add(fireball);
+            this.cooldownTimer = this.cooldownFrames;
+        }
+    }
+
+    public void update() {
+        if (this.cooldownTimer > 0) {
+            this.cooldownTimer--;
+        }
+        fireballs.removeIf(Fireball::isExpired);
+        for (Fireball fireball : fireballs) {
+            fireball.update();
+        }
+        if (moving) {
+            if (this.x < this.targetX) this.x += speed;
+            if (this.x > this.targetX) this.x -= speed;
+            if (this.y < this.targetY) this.y += speed;
+            if (this.y > this.targetY) this.y -= speed;
+    
+            // Stop movement when aligned with the target tile
+            if (this.x == this.targetX && this.y == this.targetY) {
+                System.out.println("Current position: (" + this.x + ", " + this.y + ")");
+                System.out.println("Target position: (" + this.targetX + ", " + this.targetY + ")");
+                System.out.println("Moving flag: " + this.moving);
+                this.moving = false;
+                System.out.println("Reached target tile: (" + this.tileX + ", " + this.tileY + ")");
+            }
+        }
+    }
+
+    public int getSpeed() {
+        return speed;
+    }
+
+    public boolean getMoving() {
+        return moving;
+    }
+}

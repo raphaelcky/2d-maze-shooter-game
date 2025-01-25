@@ -13,14 +13,12 @@ public class GameMap {
     private Tile[][] grid;
     private PImage stoneImage;
     private PImage brickImage;
-    private PImage wizardImage;
     private PImage gremlinImage;
     private PImage exitImage;
 
-    public GameMap(PImage stoneImage, PImage brickImage, PImage wizardImage, PImage gremlinImage, PImage exitImage) {
+    public GameMap(PImage stoneImage, PImage brickImage, PImage gremlinImage, PImage exitImage) {
         this.stoneImage = stoneImage;
         this.brickImage = brickImage;
-        this.wizardImage = wizardImage;
         this.gremlinImage = gremlinImage;
         this.exitImage = exitImage;
     }
@@ -50,7 +48,7 @@ public class GameMap {
                             grid[row][col] = new Tile(Tile.BRICK, brickImage);
                             break;
                         case Tile.WIZARD:
-                            grid[row][col] = new Tile(Tile.WIZARD, wizardImage);
+                            grid[row][col] = new Tile(Tile.WIZARD, null);
                             break;
                         case Tile.GREMLIN:
                             grid[row][col] = new Tile(Tile.GREMLIN, gremlinImage);
@@ -79,5 +77,20 @@ public class GameMap {
                 }
             }
         }
+    }
+
+    public Tile getTile(int row, int col) {
+        if (row < 0 || col < 0 || row >= rows || col >= cols) {
+            return null; // Out of bounds
+        }
+        return grid[row][col];
+    }
+    
+    public int getRows() {
+        return rows;
+    }
+    
+    public int getCols() {
+        return cols;
     }
 }

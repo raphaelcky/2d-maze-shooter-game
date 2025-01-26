@@ -39,7 +39,7 @@ public class GameMap {
     }
 
     public void loadMap(String filePath) {
-        System.out.println("Attempting to load map from: " + filePath);
+        System.out.println("Loading map from: " + filePath);
         try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
             this.rows = 33; // Fixed rows based on specification
             this.cols = 36; // Fixed columns based on specification
@@ -79,8 +79,6 @@ public class GameMap {
             }
         } catch (IOException e) {
             System.err.println("Error reading map file: " + e.getMessage());
-        } catch (IllegalArgumentException e) {
-            System.err.println("Error: " + e.getMessage());
         }
     }
 
@@ -89,7 +87,6 @@ public class GameMap {
             for (int col = 0; col < cols; col++) {
                 Tile tile = grid[row][col];
                 if (tile != null) {
-                    // Check if the tile is fully destroyed
                     if (tile.isDestroyed()) {
                         grid[row][col] = new Tile(Tile.EMPTY, null); // Replace with an empty tile
                     } else {
@@ -98,6 +95,7 @@ public class GameMap {
                 }
             }
         }
+
         // Draw gremlins
         for (Gremlin gremlin : gremlins) {
             gremlin.draw(app);
@@ -105,29 +103,24 @@ public class GameMap {
     }
 
     public void updateGremlins(Wizard wizard) {
+        if (app.getCollisionCooldown() > 0) {
+            return; // Skip collision checking during cooldown
+        }
+
+        ArrayList<Slime> expiredSlimes = new ArrayList<>();
+
         for (Gremlin gremlin : gremlins) {
             gremlin.update(this, wizard.getX(), wizard.getY());
-            
-            // Check collision with fireballs
-            for (Fireball fireball : wizard.getFireballs()) {
-                if (gremlin.checkFireballCollision(fireball)) {
-                    fireball.setExpired(true); // Remove fireball
-                    gremlin.respawn(this, wizard.getX(), wizard.getY()); // Respawn gremlin
-                    break;
-                }
-            }
-    
-            // Check collision with wizard
+
+            // Check collisions between wizard and gremlins
             if (Math.abs(gremlin.getX() - wizard.getX()) < App.SPRITESIZE &&
                 Math.abs(gremlin.getY() - wizard.getY()) < App.SPRITESIZE) {
-                App.resetLevel();
+                app.loseLife(); // Handle life loss
+                app.setCollisionCooldown(30);
                 return;
             }
-        }
-    
-        // Check collision between fireball and slime
-        ArrayList<Slime> expiredSlimes = new ArrayList<>();
-        for (Gremlin gremlin : gremlins) {
+
+            // Check collisions between fireballs and slimes
             for (Slime slime : gremlin.getSlimes()) {
                 for (Fireball fireball : wizard.getFireballs()) {
                     if (Math.abs(fireball.getX() - slime.getX()) < App.SPRITESIZE &&
@@ -139,16 +132,19 @@ public class GameMap {
                 }
             }
         }
+
+        // Remove expired slimes
         for (Gremlin gremlin : gremlins) {
             gremlin.getSlimes().removeAll(expiredSlimes);
         }
-    
-        // Check collision between slime and wizard
+
+        // Check collisions between wizard and slimes
         for (Gremlin gremlin : gremlins) {
             for (Slime slime : gremlin.getSlimes()) {
                 if (Math.abs(slime.getX() - wizard.getX()) < App.SPRITESIZE &&
                     Math.abs(slime.getY() - wizard.getY()) < App.SPRITESIZE) {
-                    App.resetLevel();
+                    app.loseLife(); // Handle life loss
+                    app.setCollisionCooldown(30);
                     return;
                 }
             }
@@ -158,30 +154,8 @@ public class GameMap {
     public void triggerBrickDestruction(int gridX, int gridY) {
         Tile tile = this.grid[gridY][gridX];
         if (tile != null && tile.getType() == Tile.BRICK) {
-            tile.startDestructionAnimation(this.brickDestructionImages); // Use stored images
+            tile.startDestructionAnimation(this.brickDestructionImages);
         }
-    }
-
-    public boolean isPlayerCollidingWithGremlinOrSlime(Wizard wizard) {
-        // Check collision with gremlins
-        for (Gremlin gremlin : gremlins) {
-            if (Math.abs(gremlin.getX() - wizard.getX()) < App.SPRITESIZE &&
-                Math.abs(gremlin.getY() - wizard.getY()) < App.SPRITESIZE) {
-                return true; // Wizard collides with a gremlin
-            }
-        }
-    
-        // Check collision with slimes
-        for (Gremlin gremlin : gremlins) {
-            for (Slime slime : gremlin.getSlimes()) {
-                if (Math.abs(slime.getX() - wizard.getX()) < App.SPRITESIZE &&
-                    Math.abs(slime.getY() - wizard.getY()) < App.SPRITESIZE) {
-                    return true; // Wizard collides with a slime
-                }
-            }
-        }
-    
-        return false; // No collisions detected
     }
 
     public ArrayList<int[]> getEmptyTilesFarFrom(int wizardX, int wizardY, int minDistance) {
@@ -218,5 +192,9 @@ public class GameMap {
 
     public App getApp() {
         return app;
+    }
+
+    public void clearGremlins() {
+        gremlins.clear();
     }
 }

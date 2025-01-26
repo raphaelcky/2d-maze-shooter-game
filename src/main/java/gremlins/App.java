@@ -3,11 +3,9 @@ package gremlins;
 import processing.core.PApplet;
 import processing.core.PImage;
 import processing.data.JSONObject;
-import processing.data.JSONArray;
 
 import java.util.Random;
 import java.io.*;
-
 
 public class App extends PApplet {
 
@@ -21,7 +19,7 @@ public class App extends PApplet {
     public static final Random randomGenerator = new Random();
 
     public String configPath;
-    
+
     public PImage brickwall;
     public PImage stonewall;
     public PImage gremlin;
@@ -29,16 +27,22 @@ public class App extends PApplet {
     public PImage fireball;
     public PImage slime;
     public PImage wizardImage;
+    public PImage wizardLeft;
+    public PImage wizardRight;
+    public PImage wizardUp;
+    public PImage wizardDown;
 
     private GameMap gameMap;
     private Wizard wizard;
 
-    private JSONObject config; // Instance-level config variable
-    private int initialLives; // Store initial lives from config
+    private JSONObject config; 
+    private String layoutFile;
+    private int initialLives; 
     public static int lives;
     public static boolean gameOver = false;
     private int collisionCooldown = 0;
-    // Movement flags for simultaneous actions
+    private int wizardCooldown;
+
     private boolean isMovingUp = false;
     private boolean isMovingDown = false;
     private boolean isMovingLeft = false;
@@ -48,114 +52,97 @@ public class App extends PApplet {
         this.configPath = "config.json";
     }
 
-    /**
-     * Initialise the setting of the window size.
-    */
     public void settings() {
         size(WIDTH, HEIGHT);
     }
 
-    /**
-     * Load all resources such as images. Initialise the elements such as the player, enemies and map elements.
-    */
     public void setup() {
         frameRate(FPS);
-
-        // Load images during setup
+    
+        // Load images
         this.stonewall = loadImage(this.getClass().getResource("stonewall.png").getPath().replace("%20", ""));
         this.brickwall = loadImage(this.getClass().getResource("brickwall.png").getPath().replace("%20", ""));
         this.gremlin = loadImage(this.getClass().getResource("gremlin.png").getPath().replace("%20", ""));
         this.exit = loadImage(this.getClass().getResource("exit.png").getPath().replace("%20", ""));
-
-        PImage wizardLeft = loadImage(this.getClass().getResource("wizard0.png").getPath().replace("%20", ""));
-        PImage wizardRight = loadImage(this.getClass().getResource("wizard1.png").getPath().replace("%20", ""));
-        PImage wizardUp = loadImage(this.getClass().getResource("wizard2.png").getPath().replace("%20", ""));
-        PImage wizardDown = loadImage(this.getClass().getResource("wizard3.png").getPath().replace("%20", ""));
+        this.wizardLeft = loadImage(this.getClass().getResource("wizard0.png").getPath().replace("%20", ""));
+        this.wizardRight = loadImage(this.getClass().getResource("wizard1.png").getPath().replace("%20", ""));
+        this.wizardUp = loadImage(this.getClass().getResource("wizard2.png").getPath().replace("%20", ""));
+        this.wizardDown = loadImage(this.getClass().getResource("wizard3.png").getPath().replace("%20", ""));
         this.slime = loadImage(this.getClass().getResource("slime.png").getPath().replace("%20", ""));
         this.fireball = loadImage(this.getClass().getResource("fireball.png").getPath().replace("%20", ""));
         this.wizardImage = wizardRight;
-        
+    
         PImage[] brickDestructionImages = new PImage[4];
         for (int i = 0; i < 4; i++) {
             brickDestructionImages[i] = loadImage(this.getClass().getResource("brickwall_destroyed" + i + ".png").getPath().replace("%20", ""));
         }
-
-        // Load the configuration
-        JSONObject config = loadJSONObject(new File(this.configPath));
-        String layoutFile = config.getJSONArray("levels").getJSONObject(0).getString("layout");
-
+    
+        // Load configuration
+        this.config = loadJSONObject(new File(this.configPath));
+        this.layoutFile = config.getJSONArray("levels").getJSONObject(0).getString("layout"); // Assign to instance variable
+    
         int slimeCooldown = (int) (config.getJSONArray("levels").getJSONObject(0).getFloat("enemy_cooldown") * App.FPS);
-
+        wizardCooldown = (int) (config.getJSONArray("levels").getJSONObject(0).getFloat("wizard_cooldown") * App.FPS);
+    
         // Initialize the map
         this.gameMap = new GameMap(this, stonewall, brickwall, gremlin, slime, exit, brickDestructionImages, slimeCooldown);
         lives = config.getInt("lives");
-
+    
         // Load the first level's map
         this.gameMap.loadMap(layoutFile);
+    
+        // Initialize the wizard
+        initializeWizard();
+    }
 
-        // Initialize the wizard at its starting position
+
+    private void initializeWizard() {
         for (int row = 0; row < gameMap.getRows(); row++) {
             for (int col = 0; col < gameMap.getCols(); col++) {
                 if (gameMap.getTile(row, col).getType() == Tile.WIZARD) {
-                    this.wizard = new Wizard(col * SPRITESIZE, row * SPRITESIZE, wizardLeft, wizardRight, wizardUp, wizardDown,
-                        (int) (config.getJSONArray("levels").getJSONObject(0).getFloat("wizard_cooldown") * App.FPS), 
-                        fireball);
+                    this.wizard = new Wizard(
+                        col * SPRITESIZE,
+                        row * SPRITESIZE,
+                        wizardLeft,
+                        wizardRight,
+                        wizardUp,
+                        wizardDown,
+                        wizardCooldown,
+                        fireball
+                    );
+                    return; // Stop after initializing the wizard
                 }
             }
         }
+
+        if (wizard == null) {
+            throw new IllegalStateException("Wizard not found in the map layout!");
+        }
     }
 
-    /**
-     * Receive key pressed signal from the keyboard.
-    */
     public void keyPressed() {
         if (gameOver && key == 'r') {
-            // Restart the game
-            lives = initialLives;
-            gameOver = false;
-            setup();
+            restartGame();
             return;
         }
 
         if (this.wizard == null) return;
-    
-        // Track movement keys
-        if (keyCode == UP) {
-            isMovingUp = true;
-        } else if (keyCode == DOWN) {
-            isMovingDown = true;
-        } else if (keyCode == LEFT) {
-            isMovingLeft = true;
-        } else if (keyCode == RIGHT) {
-            isMovingRight = true;
-        }
 
-        // Allow shooting fireballs
-        if (key == ' ') { // Spacebar to shoot
-            this.wizard.shootFireball();
-        }
+        if (keyCode == UP) isMovingUp = true;
+        else if (keyCode == DOWN) isMovingDown = true;
+        else if (keyCode == LEFT) isMovingLeft = true;
+        else if (keyCode == RIGHT) isMovingRight = true;
+
+        if (key == ' ') this.wizard.shootFireball();
     }
-    
-    /**
-     * Receive key released signal from the keyboard.
-    */
+
     public void keyReleased() {
-        // Reset movement flags when keys are released
-        if (keyCode == UP) {
-            isMovingUp = false;
-        } else if (keyCode == DOWN) {
-            isMovingDown = false;
-        } else if (keyCode == LEFT) {
-            isMovingLeft = false;
-        } else if (keyCode == RIGHT) {
-            isMovingRight = false;
-        }
+        if (keyCode == UP) isMovingUp = false;
+        else if (keyCode == DOWN) isMovingDown = false;
+        else if (keyCode == LEFT) isMovingLeft = false;
+        else if (keyCode == RIGHT) isMovingRight = false;
     }
 
-
-    /**
-     * Draw all elements in the game by current frame. 
-	 */
     public void draw() {
         if (gameOver) {
             drawGameOverScreen();
@@ -166,54 +153,30 @@ public class App extends PApplet {
         this.gameMap.draw(this);
         this.gameMap.updateGremlins(this.wizard);
 
-        if (collisionCooldown > 0) {
-            collisionCooldown--;
-        } else {
-            checkPlayerCollisions();
-        }
+        if (collisionCooldown > 0) collisionCooldown--;
 
         this.wizard.draw(this);
         this.wizard.update(this.gameMap);
 
-        // Draw cooldown timer bar
-        this.wizard.drawCooldownBar(this);
-
-        // Draw lives
         drawLives();
     }
 
     private void drawLives() {
         for (int i = 0; i < lives; i++) {
-            image(wizardImage, 10 + i * (App.SPRITESIZE + 5), App.HEIGHT - App.BOTTOMBAR + 10);
+            image(wizardImage, 10 + i * (SPRITESIZE + 5), HEIGHT - BOTTOMBAR + 10);
         }
     }
 
-    private void checkPlayerCollisions() {
-        if (collisionCooldown > 0) {
-            return; // Prevent collisions during cooldown
-        }
-    
-        // Check collisions with gremlins
-        if (gameMap.isPlayerCollidingWithGremlinOrSlime(this.wizard)) {
-            collisionCooldown = 60; // 30-frame cooldown to avoid repeated life loss
-            loseLife();
-            return;
-        }
-    
-        // Check collisions with slime
-        if (gameMap.isPlayerCollidingWithGremlinOrSlime(this.wizard)) {
-            collisionCooldown = 60; // 30-frame cooldown to avoid repeated life loss
-            loseLife();
-        }
-    }
-    
-    private void loseLife() {
-        App.lives--;
+    public void loseLife() {
+        if (collisionCooldown > 0) return;
+
+        lives--;
         System.out.println("Lives: " + lives);
-        if (App.lives <= 0) {
-            App.gameOver = true; // Trigger game over
+
+        if (lives <= 0) {
+            gameOver = true;
         } else {
-            resetLevel(); // Reset level if lives remain
+            resetLevel();
         }
     }
 
@@ -228,39 +191,38 @@ public class App extends PApplet {
         text("Press R to Restart", WIDTH / 2, HEIGHT / 2 + 40);
     }
 
-    public static void resetLevel() {
-        lives--;
-        System.out.println("Lives: " + lives);
-        if (lives == 0) {
-            gameOver = true;
-        }
+    private void restartGame() {
+        lives = config.getInt("lives");
+        gameOver = false;
+        setup();
     }
 
-    public void keyTyped() {
-        if (gameOver && key == 'r') {
-            // Restart the game
-            lives = config.getInt("lives");
-            gameOver = false;
-            resetLevel();
-        }
+    private void resetLevel() {
+        // Clear the existing gremlins
+        gameMap.clearGremlins();
+
+        // Reload the map to reset the level layout
+        gameMap.loadMap(this.layoutFile);
+
+        // Reset wizard position and state
+        initializeWizard();
+
+        // Reset collision cooldown
+        collisionCooldown = 0;
     }
 
-    // Add these public getters for movement flags
-    public boolean isMovingUp() {
-        return isMovingUp;
+    public int getCollisionCooldown() {
+        return collisionCooldown;
     }
 
-    public boolean isMovingDown() {
-        return isMovingDown;
+    public void setCollisionCooldown(int cooldown) {
+        this.collisionCooldown = cooldown;
     }
 
-    public boolean isMovingLeft() {
-        return isMovingLeft;
-    }
-
-    public boolean isMovingRight() {
-        return isMovingRight;
-    }
+    public boolean isMovingUp() { return isMovingUp; }
+    public boolean isMovingDown() { return isMovingDown; }
+    public boolean isMovingLeft() { return isMovingLeft; }
+    public boolean isMovingRight() { return isMovingRight; }
 
     public static void main(String[] args) {
         PApplet.main("gremlins.App");

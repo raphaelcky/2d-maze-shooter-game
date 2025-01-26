@@ -173,6 +173,32 @@ public class Wizard {
         return this.y;
     }
 
+    public void setPosition(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    // Getter methods
+    public PImage getImageLeft() {
+        return leftImage;
+    }
+
+    public PImage getImageRight() {
+        return rightImage;
+    }
+
+    public PImage getImageUp() {
+        return upImage;
+    }
+
+    public PImage getImageDown() {
+        return downImage;
+    }
+
+    public int getCooldownFrames() {
+        return cooldownFrames;
+    }
+
     public ArrayList<Fireball> getFireballs() {
         return this.fireballs;
     }

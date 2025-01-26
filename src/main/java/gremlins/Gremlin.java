@@ -2,18 +2,21 @@ package gremlins;
 
 import processing.core.PApplet;
 import processing.core.PImage;
-
 import java.util.ArrayList;
 import java.util.Random;
 
 public class Gremlin {
     private int x, y; // Current position in pixels
-    private int tileX, tileY; // Current position in grid
-    private int targetX, targetY; // Target position in pixels
+    private int tileX, tileY; // Grid position
     private int speed = 1; // Movement speed
     private String direction; // Current direction of movement
+    private int moveCooldown = 30; // Time in frames between movements
+    private int moveTimer = 0; // Timer for movement
     private int slimeCooldown; // Cooldown between slime shots (frames)
     private int slimeTimer = 0; // Timer for shooting slime
+    private boolean moving; // Track if gremlin is currently moving
+    private int targetX, targetY; // Target pixel coordinates
+
 
     private PImage image;
     private PImage slimeImage;
@@ -44,19 +47,14 @@ public class Gremlin {
 
     public void update(GameMap map, int wizardX, int wizardY) {
         move(map);
-    
-        // Slime shooting logic
+
+        // Handle slime shooting
         if (slimeTimer > 0) {
             slimeTimer--;
         } else {
             shootSlime();
         }
-    
-        // Collision with the wizard
-        if (Math.abs(this.x - wizardX) < App.SPRITESIZE && Math.abs(this.y - wizardY) < App.SPRITESIZE) {
-            // Trigger level reset logic here
-        }
-    
+
         // Update slimes
         slimes.removeIf(Slime::isExpired);
         for (Slime slime : slimes) {
@@ -179,16 +177,13 @@ public class Gremlin {
 
     private void shootSlime() {
         Slime slime = new Slime(this.x, this.y, this.direction, slimeImage);
-        this.slimes.add(slime);
-        this.slimeTimer = this.slimeCooldown; // Reset slime cooldown
+        slimes.add(slime);
+        slimeTimer = slimeCooldown;
     }
 
     public boolean checkFireballCollision(Fireball fireball) {
-        // Check if fireball hits the gremlin
-        if (fireball.getX() == this.tileX * App.SPRITESIZE && fireball.getY() == this.tileY * App.SPRITESIZE) {
-            return true;
-        }
-        return false;
+        // Fireball collision with gremlin
+        return fireball.getX() / App.SPRITESIZE == this.tileX && fireball.getY() / App.SPRITESIZE == this.tileY;
     }
 
     public void respawn(GameMap map, int wizardX, int wizardY) {
@@ -203,5 +198,17 @@ public class Gremlin {
             this.targetX = this.x;
             this.targetY = this.y;
         }
+    }
+
+    public int getX() {
+        return this.x;
+    }
+
+    public int getY() {
+        return this.y;
+    }
+
+    public ArrayList<Slime> getSlimes() {
+        return this.slimes;
     }
 }

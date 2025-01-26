@@ -28,9 +28,21 @@ public class App extends PApplet {
     public PImage exit;
     public PImage fireball;
     public PImage slime;
+    public PImage wizardImage;
 
     private GameMap gameMap;
     private Wizard wizard;
+
+    private JSONObject config; // Instance-level config variable
+    private int initialLives; // Store initial lives from config
+    public static int lives;
+    public static boolean gameOver = false;
+    private int collisionCooldown = 0;
+    // Movement flags for simultaneous actions
+    private boolean isMovingUp = false;
+    private boolean isMovingDown = false;
+    private boolean isMovingLeft = false;
+    private boolean isMovingRight = false;
 
     public App() {
         this.configPath = "config.json";
@@ -61,6 +73,7 @@ public class App extends PApplet {
         PImage wizardDown = loadImage(this.getClass().getResource("wizard3.png").getPath().replace("%20", ""));
         this.slime = loadImage(this.getClass().getResource("slime.png").getPath().replace("%20", ""));
         this.fireball = loadImage(this.getClass().getResource("fireball.png").getPath().replace("%20", ""));
+        this.wizardImage = wizardRight;
         
         PImage[] brickDestructionImages = new PImage[4];
         for (int i = 0; i < 4; i++) {
@@ -74,7 +87,8 @@ public class App extends PApplet {
         int slimeCooldown = (int) (config.getJSONArray("levels").getJSONObject(0).getFloat("enemy_cooldown") * App.FPS);
 
         // Initialize the map
-        this.gameMap = new GameMap(stonewall, brickwall, gremlin, slime, exit, brickDestructionImages, slimeCooldown);
+        this.gameMap = new GameMap(this, stonewall, brickwall, gremlin, slime, exit, brickDestructionImages, slimeCooldown);
+        lives = config.getInt("lives");
 
         // Load the first level's map
         this.gameMap.loadMap(layoutFile);
@@ -95,21 +109,28 @@ public class App extends PApplet {
      * Receive key pressed signal from the keyboard.
     */
     public void keyPressed() {
+        if (gameOver && key == 'r') {
+            // Restart the game
+            lives = initialLives;
+            gameOver = false;
+            setup();
+            return;
+        }
+
         if (this.wizard == null) return;
     
-        if (!this.wizard.getMoving()) { // Only allow new movement commands if not already moving
-            if (keyCode == UP) {
-                this.wizard.move(0, -1, this.gameMap);
-            } else if (keyCode == DOWN) {
-                this.wizard.move(0, 1, this.gameMap);
-            } else if (keyCode == LEFT) {
-                this.wizard.move(-1, 0, this.gameMap);
-            } else if (keyCode == RIGHT) {
-                this.wizard.move(1, 0, this.gameMap);
-            }
+        // Track movement keys
+        if (keyCode == UP) {
+            isMovingUp = true;
+        } else if (keyCode == DOWN) {
+            isMovingDown = true;
+        } else if (keyCode == LEFT) {
+            isMovingLeft = true;
+        } else if (keyCode == RIGHT) {
+            isMovingRight = true;
         }
-    
-        // Fireball shooting
+
+        // Allow shooting fireballs
         if (key == ' ') { // Spacebar to shoot
             this.wizard.shootFireball();
         }
@@ -118,8 +139,17 @@ public class App extends PApplet {
     /**
      * Receive key released signal from the keyboard.
     */
-    public void keyReleased(){
-
+    public void keyReleased() {
+        // Reset movement flags when keys are released
+        if (keyCode == UP) {
+            isMovingUp = false;
+        } else if (keyCode == DOWN) {
+            isMovingDown = false;
+        } else if (keyCode == LEFT) {
+            isMovingLeft = false;
+        } else if (keyCode == RIGHT) {
+            isMovingRight = false;
+        }
     }
 
 
@@ -127,14 +157,109 @@ public class App extends PApplet {
      * Draw all elements in the game by current frame. 
 	 */
     public void draw() {
+        if (gameOver) {
+            drawGameOverScreen();
+            return;
+        }
+
         background(13544591);
         this.gameMap.draw(this);
         this.gameMap.updateGremlins(this.wizard);
+
+        if (collisionCooldown > 0) {
+            collisionCooldown--;
+        } else {
+            checkPlayerCollisions();
+        }
+
         this.wizard.draw(this);
         this.wizard.update(this.gameMap);
 
         // Draw cooldown timer bar
         this.wizard.drawCooldownBar(this);
+
+        // Draw lives
+        drawLives();
+    }
+
+    private void drawLives() {
+        for (int i = 0; i < lives; i++) {
+            image(wizardImage, 10 + i * (App.SPRITESIZE + 5), App.HEIGHT - App.BOTTOMBAR + 10);
+        }
+    }
+
+    private void checkPlayerCollisions() {
+        if (collisionCooldown > 0) {
+            return; // Prevent collisions during cooldown
+        }
+    
+        // Check collisions with gremlins
+        if (gameMap.isPlayerCollidingWithGremlinOrSlime(this.wizard)) {
+            collisionCooldown = 60; // 30-frame cooldown to avoid repeated life loss
+            loseLife();
+            return;
+        }
+    
+        // Check collisions with slime
+        if (gameMap.isPlayerCollidingWithGremlinOrSlime(this.wizard)) {
+            collisionCooldown = 60; // 30-frame cooldown to avoid repeated life loss
+            loseLife();
+        }
+    }
+    
+    private void loseLife() {
+        App.lives--;
+        System.out.println("Lives: " + lives);
+        if (App.lives <= 0) {
+            App.gameOver = true; // Trigger game over
+        } else {
+            resetLevel(); // Reset level if lives remain
+        }
+    }
+
+    private void drawGameOverScreen() {
+        background(255);
+        fill(0);
+        textSize(50);
+        textAlign(CENTER, CENTER);
+        text("Game Over", WIDTH / 2, HEIGHT / 2 - 20);
+
+        textSize(25);
+        text("Press R to Restart", WIDTH / 2, HEIGHT / 2 + 40);
+    }
+
+    public static void resetLevel() {
+        lives--;
+        System.out.println("Lives: " + lives);
+        if (lives == 0) {
+            gameOver = true;
+        }
+    }
+
+    public void keyTyped() {
+        if (gameOver && key == 'r') {
+            // Restart the game
+            lives = config.getInt("lives");
+            gameOver = false;
+            resetLevel();
+        }
+    }
+
+    // Add these public getters for movement flags
+    public boolean isMovingUp() {
+        return isMovingUp;
+    }
+
+    public boolean isMovingDown() {
+        return isMovingDown;
+    }
+
+    public boolean isMovingLeft() {
+        return isMovingLeft;
+    }
+
+    public boolean isMovingRight() {
+        return isMovingRight;
     }
 
     public static void main(String[] args) {

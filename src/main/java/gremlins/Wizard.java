@@ -67,12 +67,12 @@ public class Wizard {
             }
 
             // Log the requested move
-            System.out.println("Attempting to move to tile (" + nextTileX + ", " + nextTileY + ")");
+            //System.out.println("Attempting to move to tile (" + nextTileX + ", " + nextTileY + ")");
     
             // Check collision with stone and brick walls
             Tile nextTile = map.getTile(nextTileY, nextTileX);
             if (nextTile == null || nextTile.getType() == Tile.STONE || nextTile.getType() == Tile.BRICK) {
-                System.out.println("Movement blocked by obstacle.");
+                //System.out.println("Movement blocked by obstacle.");
                 return;
             }
     
@@ -84,7 +84,7 @@ public class Wizard {
             this.targetY = this.tileY * App.SPRITESIZE;
     
             // Log movement initiation
-            System.out.println("Moving to target pixel (" + this.targetX + ", " + this.targetY + ")");
+            //System.out.println("Moving to target pixel (" + this.targetX + ", " + this.targetY + ")");
     
 
         }
@@ -107,19 +107,31 @@ public class Wizard {
         for (Fireball fireball : fireballs) {
             fireball.update(map);
         }
+    
+        // Access movement flags via App's public methods
+        App app = (App) map.getApp(); // Assume GameMap has a reference to the app instance
+        if (app.isMovingUp()) {
+            move(0, -1, map);
+        }
+        if (app.isMovingDown()) {
+            move(0, 1, map);
+        }
+        if (app.isMovingLeft()) {
+            move(-1, 0, map);
+        }
+        if (app.isMovingRight()) {
+            move(1, 0, map);
+        }
+    
         if (moving) {
             if (this.x < this.targetX) this.x += speed;
             if (this.x > this.targetX) this.x -= speed;
             if (this.y < this.targetY) this.y += speed;
             if (this.y > this.targetY) this.y -= speed;
     
-            // Stop movement when aligned with the target tile
+            // Stop movement when reaching the target tile
             if (this.x == this.targetX && this.y == this.targetY) {
-                System.out.println("Current position: (" + this.x + ", " + this.y + ")");
-                System.out.println("Target position: (" + this.targetX + ", " + this.targetY + ")");
-                System.out.println("Moving flag: " + this.moving);
                 this.moving = false;
-                System.out.println("Reached target tile: (" + this.tileX + ", " + this.tileY + ")");
             }
         }
     }
@@ -146,18 +158,22 @@ public class Wizard {
     }
 
     public int getSpeed() {
-        return speed;
+        return this.speed;
     }
 
     public boolean getMoving() {
-        return moving;
+        return this.moving;
     }
 
     public int getX() {
-        return x;
+        return this.x;
     }
 
     public int getY() {
-        return y;
+        return this.y;
+    }
+
+    public ArrayList<Fireball> getFireballs() {
+        return this.fireballs;
     }
 }

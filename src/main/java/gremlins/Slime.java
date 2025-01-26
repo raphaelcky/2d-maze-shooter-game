@@ -38,13 +38,38 @@ public class Slime {
                 this.x += speed;
                 break;
         }
+        
+        // Convert current position to grid coordinates
+        int currentGridX = this.x / App.SPRITESIZE;
+        int currentGridY = this.y / App.SPRITESIZE;
 
-        // Check for collisions
-        int gridX = this.x / App.SPRITESIZE;
-        int gridY = this.y / App.SPRITESIZE;
+        if (this.direction.equals("up")) {
+            currentGridY++;
+        } else if (this.direction.equals("left")) {
+            currentGridX++;
+        }
+    
+        // Determine the next grid coordinates (based on direction)
+        int nextGridX = currentGridX;
+        int nextGridY = currentGridY;
+    
+        switch (this.direction) {
+            case "up":
+                nextGridY--;
+                break;
+            case "down":
+                nextGridY++;
+                break;
+            case "left":
+                nextGridX--;
+                break;
+            case "right":
+                nextGridX++;
+                break;
+        }
 
-        Tile tile = map.getTile(gridY, gridX);
-        if (tile != null && (tile.getType() == Tile.STONE || tile.getType() == Tile.BRICK)) {
+        Tile nextTile = map.getTile(nextGridY, nextGridX);
+        if (nextTile != null && (nextTile.getType() == Tile.STONE || nextTile.getType() == Tile.BRICK)) {
             this.expired = true; // Slime stops when it hits a wall
         }
 
@@ -56,5 +81,17 @@ public class Slime {
 
     public boolean isExpired() {
         return this.expired;
+    }
+
+    public void setExpired(boolean expired) {
+        this.expired = expired;
+    }
+
+    public int getX() {
+        return this.x;
+    }
+
+    public int getY() {
+        return this.y;
     }
 }

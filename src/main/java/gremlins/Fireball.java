@@ -89,15 +89,19 @@ public class Fireball {
         }
     }
 
-    public boolean isExpired() {
-        return this.expired;
-    }
-
     public int getX() {
         return this.x;
     }
     
     public int getY() {
         return this.y;
+    }
+
+    public boolean isExpired() {
+        return this.expired;
+    }
+
+    public void setExpired(boolean expired) {
+        this.expired = expired;
     }
 }

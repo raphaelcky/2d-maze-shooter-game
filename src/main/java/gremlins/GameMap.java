@@ -22,10 +22,12 @@ public class GameMap {
     private PImage[] brickDestructionImages; // Destruction images for bricks
     private ArrayList<Gremlin> gremlins; // List of gremlins
     private int slimeCooldown;
-
+    private App app;
+    
     private Random random = new Random();
 
-    public GameMap(PImage stoneImage, PImage brickImage, PImage gremlinImage, PImage slimeImage, PImage exitImage, PImage[] brickDestructionImages, int slimeCooldown) {
+    public GameMap(App app, PImage stoneImage, PImage brickImage, PImage gremlinImage, PImage slimeImage, PImage exitImage, PImage[] brickDestructionImages, int slimeCooldown) {
+        this.app = app;
         this.stoneImage = stoneImage;
         this.brickImage = brickImage;
         this.gremlinImage = gremlinImage;
@@ -105,6 +107,51 @@ public class GameMap {
     public void updateGremlins(Wizard wizard) {
         for (Gremlin gremlin : gremlins) {
             gremlin.update(this, wizard.getX(), wizard.getY());
+            
+            // Check collision with fireballs
+            for (Fireball fireball : wizard.getFireballs()) {
+                if (gremlin.checkFireballCollision(fireball)) {
+                    fireball.setExpired(true); // Remove fireball
+                    gremlin.respawn(this, wizard.getX(), wizard.getY()); // Respawn gremlin
+                    break;
+                }
+            }
+    
+            // Check collision with wizard
+            if (Math.abs(gremlin.getX() - wizard.getX()) < App.SPRITESIZE &&
+                Math.abs(gremlin.getY() - wizard.getY()) < App.SPRITESIZE) {
+                App.resetLevel();
+                return;
+            }
+        }
+    
+        // Check collision between fireball and slime
+        ArrayList<Slime> expiredSlimes = new ArrayList<>();
+        for (Gremlin gremlin : gremlins) {
+            for (Slime slime : gremlin.getSlimes()) {
+                for (Fireball fireball : wizard.getFireballs()) {
+                    if (Math.abs(fireball.getX() - slime.getX()) < App.SPRITESIZE &&
+                        Math.abs(fireball.getY() - slime.getY()) < App.SPRITESIZE) {
+                        fireball.setExpired(true);
+                        slime.setExpired(true);
+                        expiredSlimes.add(slime);
+                    }
+                }
+            }
+        }
+        for (Gremlin gremlin : gremlins) {
+            gremlin.getSlimes().removeAll(expiredSlimes);
+        }
+    
+        // Check collision between slime and wizard
+        for (Gremlin gremlin : gremlins) {
+            for (Slime slime : gremlin.getSlimes()) {
+                if (Math.abs(slime.getX() - wizard.getX()) < App.SPRITESIZE &&
+                    Math.abs(slime.getY() - wizard.getY()) < App.SPRITESIZE) {
+                    App.resetLevel();
+                    return;
+                }
+            }
         }
     }
 
@@ -113,6 +160,28 @@ public class GameMap {
         if (tile != null && tile.getType() == Tile.BRICK) {
             tile.startDestructionAnimation(this.brickDestructionImages); // Use stored images
         }
+    }
+
+    public boolean isPlayerCollidingWithGremlinOrSlime(Wizard wizard) {
+        // Check collision with gremlins
+        for (Gremlin gremlin : gremlins) {
+            if (Math.abs(gremlin.getX() - wizard.getX()) < App.SPRITESIZE &&
+                Math.abs(gremlin.getY() - wizard.getY()) < App.SPRITESIZE) {
+                return true; // Wizard collides with a gremlin
+            }
+        }
+    
+        // Check collision with slimes
+        for (Gremlin gremlin : gremlins) {
+            for (Slime slime : gremlin.getSlimes()) {
+                if (Math.abs(slime.getX() - wizard.getX()) < App.SPRITESIZE &&
+                    Math.abs(slime.getY() - wizard.getY()) < App.SPRITESIZE) {
+                    return true; // Wizard collides with a slime
+                }
+            }
+        }
+    
+        return false; // No collisions detected
     }
 
     public ArrayList<int[]> getEmptyTilesFarFrom(int wizardX, int wizardY, int minDistance) {
@@ -145,5 +214,9 @@ public class GameMap {
 
     public int getCols() {
         return cols;
+    }
+
+    public App getApp() {
+        return app;
     }
 }

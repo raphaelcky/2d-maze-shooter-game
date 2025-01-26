@@ -113,8 +113,7 @@ public class GameMap {
             gremlin.update(this, wizard.getX(), wizard.getY());
 
             // Check collisions between wizard and gremlins
-            if (Math.abs(gremlin.getX() - wizard.getX()) < App.SPRITESIZE &&
-                Math.abs(gremlin.getY() - wizard.getY()) < App.SPRITESIZE) {
+            if (isOverlapping(gremlin.getX(), gremlin.getY(), wizard.getX(), wizard.getY())) {
                 app.loseLife(); // Handle life loss
                 app.setCollisionCooldown(30);
                 return;
@@ -123,8 +122,7 @@ public class GameMap {
             // Check collisions between fireballs and slimes
             for (Slime slime : gremlin.getSlimes()) {
                 for (Fireball fireball : wizard.getFireballs()) {
-                    if (Math.abs(fireball.getX() - slime.getX()) < App.SPRITESIZE &&
-                        Math.abs(fireball.getY() - slime.getY()) < App.SPRITESIZE) {
+                    if (isOverlapping(fireball.getX(), fireball.getY(), slime.getX(), slime.getY())) {
                         fireball.setExpired(true);
                         slime.setExpired(true);
                         expiredSlimes.add(slime);
@@ -141,14 +139,19 @@ public class GameMap {
         // Check collisions between wizard and slimes
         for (Gremlin gremlin : gremlins) {
             for (Slime slime : gremlin.getSlimes()) {
-                if (Math.abs(slime.getX() - wizard.getX()) < App.SPRITESIZE &&
-                    Math.abs(slime.getY() - wizard.getY()) < App.SPRITESIZE) {
+                if (isOverlapping(slime.getX(), slime.getY(), wizard.getX(), wizard.getY())) {
                     app.loseLife(); // Handle life loss
                     app.setCollisionCooldown(30);
                     return;
                 }
             }
         }
+    }
+
+    private boolean isOverlapping(int x1, int y1, int x2, int y2) {
+        int dx = Math.abs(x1 - x2);
+        int dy = Math.abs(y1 - y2);
+        return (dx < App.COLLISION_THRESHOLD) && (dy < App.COLLISION_THRESHOLD);
     }
 
     public void triggerBrickDestruction(int gridX, int gridY) {

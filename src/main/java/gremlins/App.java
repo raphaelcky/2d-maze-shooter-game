@@ -17,6 +17,7 @@ public class App extends PApplet {
     public static final int FPS = 60;
 
     public static final Random randomGenerator = new Random();
+    public static final int COLLISION_THRESHOLD = App.SPRITESIZE / 2;
 
     public String configPath;
 

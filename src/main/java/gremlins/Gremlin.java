@@ -102,17 +102,22 @@ public class Gremlin {
             }
     
             Tile nextTile = map.getTile(nextTileY, nextTileX);
+
             if (nextTile == null || nextTile.getType() == Tile.STONE || nextTile.getType() == Tile.BRICK) {
                 // Collision: Choose a new valid direction
                 ArrayList<String> possibleDirections = getPossibleDirections(map, tileX, tileY);
-                possibleDirections.remove(getOppositeDirection(direction));
-    
-                // If no valid directions are left, allow reversing direction
+
+                // If more than one direction exists, filter out reverse direction
+                if (possibleDirections.size() > 1) {
+                    possibleDirections.remove(getOppositeDirection(direction));
+                }
+
+                // Revalidate possible directions if filtering removed all options
                 if (possibleDirections.isEmpty()) {
                     possibleDirections = getPossibleDirections(map, tileX, tileY);
                 }
-    
-                // Pick a new direction randomly if possible
+
+                // Pick a new direction randomly
                 if (!possibleDirections.isEmpty()) {
                     direction = possibleDirections.get(random.nextInt(possibleDirections.size()));
                 } else {
@@ -120,7 +125,7 @@ public class Gremlin {
                     return;
                 }
             }
-    
+
             // Set target pixel for smooth movement
             switch (direction) {
                 case "up":
@@ -145,16 +150,16 @@ public class Gremlin {
 
     private ArrayList<String> getPossibleDirections(GameMap map, int tileX, int tileY) {
         ArrayList<String> directions = new ArrayList<>();
-        if (map.getTile(tileY - 1, tileX) != null && map.getTile(tileY - 1, tileX).getType() == Tile.EMPTY) {
+        if (map.getTile(tileY - 1, tileX) != null && map.getTile(tileY - 1, tileX).getType() != Tile.STONE && map.getTile(tileY - 1, tileX).getType() != Tile.BRICK) {
             directions.add("up");
         }
-        if (map.getTile(tileY + 1, tileX) != null && map.getTile(tileY + 1, tileX).getType() == Tile.EMPTY) {
+        if (map.getTile(tileY + 1, tileX) != null && map.getTile(tileY + 1, tileX).getType() != Tile.STONE && map.getTile(tileY + 1, tileX).getType() != Tile.BRICK) {
             directions.add("down");
         }
-        if (map.getTile(tileY, tileX - 1) != null && map.getTile(tileY, tileX - 1).getType() == Tile.EMPTY) {
+        if (map.getTile(tileY, tileX - 1) != null && map.getTile(tileY, tileX - 1).getType() != Tile.STONE && map.getTile(tileY, tileX - 1).getType() != Tile.BRICK) {
             directions.add("left");
         }
-        if (map.getTile(tileY, tileX + 1) != null && map.getTile(tileY, tileX + 1).getType() == Tile.EMPTY) {
+        if (map.getTile(tileY, tileX + 1) != null && map.getTile(tileY, tileX + 1).getType() != Tile.STONE && map.getTile(tileY, tileX + 1).getType() != Tile.BRICK) {
             directions.add("right");
         }
         return directions;

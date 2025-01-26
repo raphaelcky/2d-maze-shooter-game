@@ -23,11 +23,33 @@ public class Fireball {
     }
 
     public void update(GameMap map) {
-        // Current position in the grid
+        // Move fireball in the current direction
+        switch (this.direction) {
+            case "up":
+                this.y -= speed;
+                break;
+            case "down":
+                this.y += speed;
+                break;
+            case "left":
+                this.x -= speed;
+                break;
+            case "right":
+                this.x += speed;
+                break;
+        }
+    
+        // Convert current position to grid coordinates
         int currentGridX = this.x / App.SPRITESIZE;
         int currentGridY = this.y / App.SPRITESIZE;
+
+        if (this.direction.equals("up")) {
+            currentGridY++;
+        } else if (this.direction.equals("left")) {
+            currentGridX++;
+        }
     
-        // Next position in the direction of movement (used for stone wall collision)
+        // Determine the next grid coordinates (based on direction)
         int nextGridX = currentGridX;
         int nextGridY = currentGridY;
     
@@ -45,36 +67,20 @@ public class Fireball {
                 nextGridX++;
                 break;
         }
-        
-        // Check for brick wall collision (on top of the tile)
+    
+        // Check for brick wall collision (fireball must be on top of the brick tile)
         Tile currentTile = map.getTile(currentGridY, currentGridX);
         if (currentTile != null && currentTile.getType() == Tile.BRICK) {
-            this.expired = true; // Fireball is destroyed
-            map.triggerBrickDestruction(currentGridX, currentGridY); // Trigger brick wall destruction
-            return;
-        }
-
-        // Check for stone wall collision (one tile ahead)
-        Tile nextTile = map.getTile(nextGridY, nextGridX);
-        if (nextTile != null && nextTile.getType() == Tile.STONE) {
-            this.expired = true; // Fireball is destroyed before hitting the stone wall
-            return;
+            this.expired = true; // Destroy the fireball
+            map.triggerBrickDestruction(currentGridX, currentGridY); // Trigger brick destruction animation
+             return;
         }
     
-        // Move fireball in the current direction
-        switch (this.direction) {
-            case "up":
-                this.y -= speed;
-                break;
-            case "down":
-                this.y += speed;
-                break;
-            case "left":
-                this.x -= speed;
-                break;
-            case "right":
-                this.x += speed;
-                break;
+        // Check for stone wall collision (fireball one tile before the wall)
+        Tile nextTile = map.getTile(nextGridY, nextGridX);
+        if (nextTile != null && nextTile.getType() == Tile.STONE) {
+            this.expired = true; // Destroy the fireball
+            return;
         }
     
         // Mark fireball as expired if out of bounds
@@ -85,5 +91,13 @@ public class Fireball {
 
     public boolean isExpired() {
         return this.expired;
+    }
+
+    public int getX() {
+        return this.x;
+    }
+    
+    public int getY() {
+        return this.y;
     }
 }

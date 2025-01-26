@@ -152,4 +152,12 @@ public class Wizard {
     public boolean getMoving() {
         return moving;
     }
+
+    public int getX() {
+        return x;
+    }
+
+    public int getY() {
+        return y;
+    }
 }

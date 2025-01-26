@@ -27,6 +27,7 @@ public class App extends PApplet {
     public PImage gremlin;
     public PImage exit;
     public PImage fireball;
+    public PImage slime;
 
     private GameMap gameMap;
     private Wizard wizard;
@@ -58,19 +59,22 @@ public class App extends PApplet {
         PImage wizardRight = loadImage(this.getClass().getResource("wizard1.png").getPath().replace("%20", ""));
         PImage wizardUp = loadImage(this.getClass().getResource("wizard2.png").getPath().replace("%20", ""));
         PImage wizardDown = loadImage(this.getClass().getResource("wizard3.png").getPath().replace("%20", ""));
-        //this.slime = loadImage(this.getClass().getResource("slime.png").getPath().replace("%20", ""));
+        this.slime = loadImage(this.getClass().getResource("slime.png").getPath().replace("%20", ""));
         this.fireball = loadImage(this.getClass().getResource("fireball.png").getPath().replace("%20", ""));
         
         PImage[] brickDestructionImages = new PImage[4];
         for (int i = 0; i < 4; i++) {
             brickDestructionImages[i] = loadImage(this.getClass().getResource("brickwall_destroyed" + i + ".png").getPath().replace("%20", ""));
         }
-        // Initialize the map
-        this.gameMap = new GameMap(stonewall, brickwall, gremlin, exit, brickDestructionImages);
 
         // Load the configuration
         JSONObject config = loadJSONObject(new File(this.configPath));
         String layoutFile = config.getJSONArray("levels").getJSONObject(0).getString("layout");
+
+        int slimeCooldown = (int) (config.getJSONArray("levels").getJSONObject(0).getFloat("enemy_cooldown") * App.FPS);
+
+        // Initialize the map
+        this.gameMap = new GameMap(stonewall, brickwall, gremlin, slime, exit, brickDestructionImages, slimeCooldown);
 
         // Load the first level's map
         this.gameMap.loadMap(layoutFile);
@@ -125,6 +129,7 @@ public class App extends PApplet {
     public void draw() {
         background(13544591);
         this.gameMap.draw(this);
+        this.gameMap.updateGremlins(this.wizard);
         this.wizard.draw(this);
         this.wizard.update(this.gameMap);
 

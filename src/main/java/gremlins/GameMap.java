@@ -6,6 +6,8 @@ import processing.core.PImage;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Random;
 
 public class GameMap {
     private int rows;
@@ -14,16 +16,24 @@ public class GameMap {
     private PImage stoneImage;
     private PImage brickImage;
     private PImage gremlinImage;
+    private PImage slimeImage;
     private PImage exitImage;
 
-    private PImage[] brickDestructionImages; // Store destruction images
+    private PImage[] brickDestructionImages; // Destruction images for bricks
+    private ArrayList<Gremlin> gremlins; // List of gremlins
+    private int slimeCooldown;
 
-    public GameMap(PImage stoneImage, PImage brickImage, PImage gremlinImage, PImage exitImage, PImage[] brickDestructionImages) {
+    private Random random = new Random();
+
+    public GameMap(PImage stoneImage, PImage brickImage, PImage gremlinImage, PImage slimeImage, PImage exitImage, PImage[] brickDestructionImages, int slimeCooldown) {
         this.stoneImage = stoneImage;
         this.brickImage = brickImage;
         this.gremlinImage = gremlinImage;
+        this.slimeImage = slimeImage;
         this.exitImage = exitImage;
         this.brickDestructionImages = brickDestructionImages;
+        this.slimeCooldown = slimeCooldown;
+        this.gremlins = new ArrayList<>();
     }
 
     public void loadMap(String filePath) {
@@ -54,7 +64,8 @@ public class GameMap {
                             grid[row][col] = new Tile(Tile.WIZARD, null);
                             break;
                         case Tile.GREMLIN:
-                            grid[row][col] = new Tile(Tile.GREMLIN, gremlinImage);
+                            grid[row][col] = new Tile(Tile.EMPTY, null); // Initialize gremlins separately
+                            gremlins.add(new Gremlin(col * App.SPRITESIZE, row * App.SPRITESIZE, gremlinImage, slimeImage, slimeCooldown));
                             break;
                         case Tile.EXIT:
                             grid[row][col] = new Tile(Tile.EXIT, exitImage);
@@ -85,13 +96,40 @@ public class GameMap {
                 }
             }
         }
+        // Draw gremlins
+        for (Gremlin gremlin : gremlins) {
+            gremlin.draw(app);
+        }
     }
-    
+
+    public void updateGremlins(Wizard wizard) {
+        for (Gremlin gremlin : gremlins) {
+            gremlin.update(this, wizard.getX(), wizard.getY());
+        }
+    }
+
     public void triggerBrickDestruction(int gridX, int gridY) {
         Tile tile = this.grid[gridY][gridX];
         if (tile != null && tile.getType() == Tile.BRICK) {
             tile.startDestructionAnimation(this.brickDestructionImages); // Use stored images
         }
+    }
+
+    public ArrayList<int[]> getEmptyTilesFarFrom(int wizardX, int wizardY, int minDistance) {
+        ArrayList<int[]> emptyTiles = new ArrayList<>();
+        for (int row = 0; row < rows; row++) {
+            for (int col = 0; col < cols; col++) {
+                if (grid[row][col].getType() == Tile.EMPTY) {
+                    int tileX = col * App.SPRITESIZE;
+                    int tileY = row * App.SPRITESIZE;
+                    double distance = Math.sqrt(Math.pow(tileX - wizardX, 2) + Math.pow(tileY - wizardY, 2));
+                    if (distance >= minDistance * App.SPRITESIZE) {
+                        emptyTiles.add(new int[]{col, row});
+                    }
+                }
+            }
+        }
+        return emptyTiles;
     }
 
     public Tile getTile(int row, int col) {
@@ -100,11 +138,11 @@ public class GameMap {
         }
         return grid[row][col];
     }
-    
+
     public int getRows() {
         return rows;
     }
-    
+
     public int getCols() {
         return cols;
     }

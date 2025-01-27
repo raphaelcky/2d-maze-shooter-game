@@ -35,9 +35,9 @@ public class Tile {
             int frameIndex = currentFrame / 4; // 4 frames per image
             app.image(this.destructionImages[frameIndex], x, y);
             currentFrame++;
+            this.type = EMPTY;
             if (currentFrame >= destructionFrames) {
                 this.destroying = false;
-                this.type = EMPTY; // Mark as empty after animation
             }
         } else if (this.image != null) {
             // Draw regular tile

@@ -73,7 +73,7 @@ public class Fireball {
         if (currentTile != null && currentTile.getType() == Tile.BRICK) {
             this.expired = true; // Destroy the fireball
             map.triggerBrickDestruction(currentGridX, currentGridY); // Trigger brick destruction animation
-             return;
+            return;
         }
     
         // Check for stone wall collision (fireball one tile before the wall)

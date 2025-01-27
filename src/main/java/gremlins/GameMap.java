@@ -23,6 +23,7 @@ public class GameMap {
     private ArrayList<Gremlin> gremlins; // List of gremlins
     private int slimeCooldown;
     private App app;
+    private Exit exit; 
     
     private Random random = new Random();
 
@@ -70,7 +71,8 @@ public class GameMap {
                             gremlins.add(new Gremlin(col * App.SPRITESIZE, row * App.SPRITESIZE, gremlinImage, slimeImage, slimeCooldown));
                             break;
                         case Tile.EXIT:
-                            grid[row][col] = new Tile(Tile.EXIT, exitImage);
+                            this.exit = new Exit(col * App.SPRITESIZE, row * App.SPRITESIZE, exitImage);
+                            grid[row][col] = new Tile(Tile.EXIT, null);
                             break;
                         default:
                             grid[row][col] = new Tile(Tile.EMPTY, null);
@@ -100,6 +102,8 @@ public class GameMap {
         for (Gremlin gremlin : gremlins) {
             gremlin.draw(app);
         }
+
+        exit.draw(app);
     }
 
     public void updateGremlins(Wizard wizard) {
@@ -129,6 +133,14 @@ public class GameMap {
                     }
                 }
             }
+
+            // Check collisions between fireballs and gremlins
+            for (Fireball fireball : wizard.getFireballs()) {
+                if (isOverlapping(fireball.getX(), fireball.getY(), gremlin.getX(), gremlin.getY())) {
+                    fireball.setExpired(true);
+                    gremlin.respawn(this, wizard.getX(), wizard.getY());
+                }
+            }
         }
 
         // Remove expired slimes
@@ -145,6 +157,12 @@ public class GameMap {
                     return;
                 }
             }
+        }
+
+        // Check collision between wizard and exit
+        if (exit != null && isOverlapping(exit.getX(), exit.getY(), wizard.getX(), wizard.getY())) {
+            app.advanceToNextLevel();
+            app.setCollisionCooldown(30);
         }
     }
 

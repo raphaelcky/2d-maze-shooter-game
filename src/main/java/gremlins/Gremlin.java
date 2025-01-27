@@ -186,11 +186,6 @@ public class Gremlin {
         slimeTimer = slimeCooldown;
     }
 
-    public boolean checkFireballCollision(Fireball fireball) {
-        // Fireball collision with gremlin
-        return fireball.getX() / App.SPRITESIZE == this.tileX && fireball.getY() / App.SPRITESIZE == this.tileY;
-    }
-
     public void respawn(GameMap map, int wizardX, int wizardY) {
         // Find a random empty tile at least 10 tiles away from the wizard
         ArrayList<int[]> possibleTiles = map.getEmptyTilesFarFrom(wizardX, wizardY, 10);

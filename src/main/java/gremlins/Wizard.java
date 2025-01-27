@@ -134,6 +134,9 @@ public class Wizard {
                 this.moving = false;
             }
         }
+        if (app.isShooting()) {
+            this.shootFireball();
+        }
     }
 
     public void drawCooldownBar(PApplet app) {

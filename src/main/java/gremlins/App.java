@@ -43,11 +43,14 @@ public class App extends PApplet {
     public static boolean gameOver = false;
     private int collisionCooldown = 0;
     private int wizardCooldown;
+    private int currentLevel;
+    private PImage[] brickDestructionImages;
 
     private boolean isMovingUp = false;
     private boolean isMovingDown = false;
     private boolean isMovingLeft = false;
     private boolean isMovingRight = false;
+    private boolean isShooting = false;
 
     public App() {
         this.configPath = "config.json";
@@ -59,7 +62,7 @@ public class App extends PApplet {
 
     public void setup() {
         frameRate(FPS);
-    
+        
         // Load images
         this.stonewall = loadImage(this.getClass().getResource("stonewall.png").getPath().replace("%20", ""));
         this.brickwall = loadImage(this.getClass().getResource("brickwall.png").getPath().replace("%20", ""));
@@ -73,7 +76,7 @@ public class App extends PApplet {
         this.fireball = loadImage(this.getClass().getResource("fireball.png").getPath().replace("%20", ""));
         this.wizardImage = wizardRight;
     
-        PImage[] brickDestructionImages = new PImage[4];
+        brickDestructionImages = new PImage[4];
         for (int i = 0; i < 4; i++) {
             brickDestructionImages[i] = loadImage(this.getClass().getResource("brickwall_destroyed" + i + ".png").getPath().replace("%20", ""));
         }
@@ -91,6 +94,8 @@ public class App extends PApplet {
     
         // Load the first level's map
         this.gameMap.loadMap(layoutFile);
+
+        currentLevel = 0;
     
         // Initialize the wizard
         initializeWizard();
@@ -134,7 +139,7 @@ public class App extends PApplet {
         else if (keyCode == LEFT) isMovingLeft = true;
         else if (keyCode == RIGHT) isMovingRight = true;
 
-        if (key == ' ') this.wizard.shootFireball();
+        if (key == ' ') isShooting = true;
     }
 
     public void keyReleased() {
@@ -142,6 +147,8 @@ public class App extends PApplet {
         else if (keyCode == DOWN) isMovingDown = false;
         else if (keyCode == LEFT) isMovingLeft = false;
         else if (keyCode == RIGHT) isMovingRight = false;
+
+        if (keyCode == ' ') isShooting = false;
     }
 
     public void draw() {
@@ -158,14 +165,30 @@ public class App extends PApplet {
 
         this.wizard.draw(this);
         this.wizard.update(this.gameMap);
+        this.wizard.drawCooldownBar(this);
 
         drawLives();
     }
 
     private void drawLives() {
+        fill(255); // Set text color to white
+        textSize(20); // Set text size
+        textAlign(LEFT, CENTER); // Align text to the left
+    
+        // Y-coordinate for the lives text and icons
+        int yOffset = HEIGHT - BOTTOMBAR + 20;
+    
+        // Draw "Lives: " text
+        text("Lives:", 10, yOffset);
+    
+        // Draw lives indicators (wizard icons)
         for (int i = 0; i < lives; i++) {
-            image(wizardImage, 10 + i * (SPRITESIZE + 5), HEIGHT - BOTTOMBAR + 10);
+            image(wizardImage, 70 + i * (SPRITESIZE + 5), HEIGHT - BOTTOMBAR + 13);
         }
+    
+        // Draw the current level indicator
+        String levelText = "Level " + (currentLevel + 1) + "/" + config.getJSONArray("levels").size();
+        text(levelText, WIDTH / 4, yOffset);
     }
 
     public void loseLife() {
@@ -182,14 +205,19 @@ public class App extends PApplet {
     }
 
     private void drawGameOverScreen() {
-        background(255);
-        fill(0);
+        background(13544591);
+        fill(255);
         textSize(50);
         textAlign(CENTER, CENTER);
-        text("Game Over", WIDTH / 2, HEIGHT / 2 - 20);
-
-        textSize(25);
-        text("Press R to Restart", WIDTH / 2, HEIGHT / 2 + 40);
+        if (currentLevel >= config.getJSONArray("levels").size()) {
+            text("You Win!", WIDTH / 2, HEIGHT / 2 - 20);
+            textSize(25);
+            text("Press R to Play Again", WIDTH / 2, HEIGHT / 2 + 40);
+        } else {
+            text("Game Over", WIDTH / 2, HEIGHT / 2 - 20);
+            textSize(25);
+            text("Press R to Restart", WIDTH / 2, HEIGHT / 2 + 40);
+        }
     }
 
     private void restartGame() {
@@ -212,6 +240,25 @@ public class App extends PApplet {
         collisionCooldown = 0;
     }
 
+    public void advanceToNextLevel() {
+        currentLevel++;
+        int totalLevels = config.getJSONArray("levels").size();
+        if (currentLevel >= totalLevels) {
+            // If no more levels, show "You Win!" screen
+            gameOver = true;
+            return;
+        }
+    
+        // Load the next level
+        String layoutFile = config.getJSONArray("levels").getJSONObject(currentLevel).getString("layout");
+        int slimeCooldown = (int) (config.getJSONArray("levels").getJSONObject(currentLevel).getFloat("enemy_cooldown") * App.FPS);
+        wizardCooldown = (int) (config.getJSONArray("levels").getJSONObject(currentLevel).getFloat("wizard_cooldown") * App.FPS);
+    
+        gameMap = new GameMap(this, stonewall, brickwall, gremlin, slime, exit, brickDestructionImages, slimeCooldown);
+        gameMap.loadMap(layoutFile);
+        initializeWizard();
+    }
+
     public int getCollisionCooldown() {
         return collisionCooldown;
     }
@@ -224,6 +271,7 @@ public class App extends PApplet {
     public boolean isMovingDown() { return isMovingDown; }
     public boolean isMovingLeft() { return isMovingLeft; }
     public boolean isMovingRight() { return isMovingRight; }
+    public boolean isShooting() { return isShooting; }
 
     public static void main(String[] args) {
         PApplet.main("gremlins.App");
